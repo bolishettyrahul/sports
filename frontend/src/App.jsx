@@ -11,9 +11,14 @@ export default function App() {
 
   // Check if session is already stored in localStorage on load
   useEffect(() => {
-    const cachedSession = localStorage.getItem("cbit_session");
-    if (cachedSession) {
-      setSession(JSON.parse(cachedSession));
+    try {
+      const cachedSession = localStorage.getItem("cbit_session");
+      if (cachedSession && cachedSession !== "undefined" && cachedSession !== "null") {
+        setSession(JSON.parse(cachedSession));
+      }
+    } catch (e) {
+      console.error("Failed to parse cached session:", e);
+      localStorage.removeItem("cbit_session");
     }
   }, []);
 
