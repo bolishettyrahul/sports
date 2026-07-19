@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Narrow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#eceae6;font-family:"Archivo",system-ui,sans-serif;color:#1b1f24}
+  *{box-sizing:border-box}
+  /* ---- option-stack scaffold ---- */
+  .dv-turn{padding:44px 48px 40px;border-bottom:1px solid rgba(0,0,0,.1);scroll-margin-top:16px}
+  .dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 6px}
+  .dv-tid{font:600 10px "JetBrains Mono",monospace;padding:4px 8px;background:#1a1a1a;color:#fff;border-radius:2px;text-decoration:none}
+  .dv-tname{font:600 14px/1.3 "Archivo",sans-serif;color:#1a1a1a}
+  .dv-tsub{margin:2px 0 26px;font:400 12.5px/1.5 "Archivo",sans-serif;color:rgba(0,0,0,.5);max-width:760px}
+  .dv-opts{display:flex;flex-wrap:wrap;gap:34px;align-items:flex-start}
+  .dv-opt{flex:none;display:flex;flex-direction:column;gap:11px;scroll-margin-top:16px}
+  .dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11.5px/1.3 "Archivo",sans-serif;color:rgba(0,0,0,.55)}
+  .dv-oid{font:600 10.5px "JetBrains Mono",monospace;padding:3px 7px;background:rgba(0,0,0,.09);color:#1a1a1a;border-radius:2px;text-decoration:none}
+  .dv-opt:target .dv-oid{background:#ec3013;color:#fff}
+  .dv-next{margin:30px 0 0;font:12.5px/1.7 "Archivo",sans-serif;color:rgba(0,0,0,.55);max-width:820px}
+  .dv-next a{color:#1a1a1a}
+  /* ---- wireframe device frame ---- */
+  .wf{--red:#b3261e;--maroon:#6E1423;width:760px;background:#fff;border:2px solid #1b1f24;border-radius:2px;box-shadow:0 2px 0 rgba(0,0,0,.14);overflow:hidden;display:flex;flex-direction:column}
+  .wf-sm{width:360px}
+  .wf-bar{display:flex;align-items:center;gap:10px;padding:11px 16px;background:#e7e4df;border-bottom:2px solid #1b1f24}
+  .wf-logo{width:26px;height:26px;border:1.5px solid #1b1f24;border-radius:2px;display:grid;place-items:center;font:700 11px "Archivo";background:#fff;flex:none}
+  .wf-ttl{font:700 15px "Archivo";letter-spacing:-.01em}
+  .wf-crumb{font:500 10px "JetBrains Mono",monospace;color:#5b6470;text-transform:uppercase;letter-spacing:.06em}
+  .wf-role{margin-left:auto;font:600 9.5px "JetBrains Mono",monospace;text-transform:uppercase;letter-spacing:.08em;padding:4px 9px;border:1.5px solid #1b1f24;border-radius:999px;background:#fff}
+  .wf-body{padding:20px;display:flex;flex-direction:column;gap:14px;flex:1}
+  .wf-row{display:flex;gap:14px}
+  .wf-col{display:flex;flex-direction:column;gap:12px}
+  .box{border:1.5px dashed #9aa2ad;border-radius:3px;background:repeating-linear-gradient(135deg,#f6f7f8,#f6f7f8 7px,#eef0f2 7px,#eef0f2 14px);display:grid;place-items:center;color:#7a828d;font:500 11px "JetBrains Mono",monospace;text-align:center;padding:8px}
+  .lbl{font:600 10px "JetBrains Mono",monospace;text-transform:uppercase;letter-spacing:.07em;color:#5b6470}
+  .h1{font:700 22px/1.15 "Archivo";letter-spacing:-.02em;margin:0}
+  .h2{font:600 15px "Archivo";margin:0}
+  .txt{font:400 13px/1.45 "Archivo";color:#3a4048}
+  .muted{color:#8a929d}
+  .line{height:9px;border-radius:2px;background:#e4e7ea}
+  .line.s{width:55%}.line.m{width:78%}.line.l{width:92%}
+  .card{border:1.5px solid #cdd3da;border-radius:4px;background:#fff;padding:12px;display:flex;flex-direction:column;gap:8px}
+  .btn{font:600 12px "Archivo";text-align:left;padding:10px 14px;border:1.5px solid #1b1f24;border-radius:3px;background:#fff;color:#1b1f24;display:flex;align-items:center;gap:8px}
+  .btn.pri{background:var(--maroon);border-color:var(--maroon);color:#fff}
+  .btn.blk{width:100%}
+  .btn.dis{opacity:.4}
+  .chip{display:inline-flex;align-items:center;gap:6px;font:600 10.5px "Archivo";padding:4px 9px;border-radius:999px;border:1.5px solid;background:#fff}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .pill{font:600 11px "Archivo";padding:7px 12px;border:1.5px solid #cdd3da;border-radius:999px;background:#fff;color:#3a4048}
+  .pill.on{border-color:var(--maroon);background:#6E1423;color:#fff}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .item{border:1.5px solid #cdd3da;border-radius:4px;padding:11px;display:flex;flex-direction:column;gap:9px;min-height:96px;background:#fff}
+  .item.off{opacity:.4}
+  .stk{font:600 13px "JetBrains Mono",monospace;margin-left:auto}
+  .stk.ok{color:#1F8A5F}.stk.low{color:#C97A1B}.stk.out{color:#B3261E}
+  .badge{display:inline-flex;align-items:center;gap:6px;font:600 11px "Archivo";padding:5px 10px;border-radius:3px}
+  .badge.info{background:#e6eef7;color:#2B6CB0;border:1.5px solid #b9d0e8}
+  .badge.ok{background:#e5f2eb;color:#1F8A5F;border:1.5px solid #bfe0cd}
+  .badge.out{background:#f8e6e5;color:#B3261E;border:1.5px solid #eec3c0}
+  .anno{font:500 11px/1.4 "JetBrains Mono",monospace;color:#ec3013;display:flex;align-items:center;gap:6px}
+  .arrow{align-self:center;display:flex;flex-direction:column;align-items:center;gap:4px;color:#ec3013;font:600 9px "JetBrains Mono",monospace;text-transform:uppercase;letter-spacing:.05em;padding:0 2px}
+  .arrow svg{width:26px;height:26px}
+  .flowrow{display:flex;align-items:stretch;gap:6px;flex-wrap:wrap}
+  .cap{font:500 10px "JetBrains Mono",monospace;color:#8a929d;text-align:center;margin-top:2px}
+  .sep{height:2px;background:#1b1f24;margin:2px 0}
+  .tbl{width:100%;border-collapse:collapse;font:400 12px "Archivo"}
+  .tbl th{font:600 9.5px "JetBrains Mono",monospace;text-transform:uppercase;letter-spacing:.06em;color:#5b6470;text-align:left;padding:7px 8px;border-bottom:2px solid #1b1f24}
+  .tbl td{padding:8px;border-bottom:1px solid #e4e7ea}
+  .kpi{border:1.5px solid #cdd3da;border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:5px;flex:1}
+  .kpi b{font:700 24px "JetBrains Mono",monospace}
+  .scan{border:2px solid #1b1f24;border-radius:4px;background:#1b1f24;min-height:150px;display:grid;place-items:center;position:relative;color:#c9cdd3;font:500 11px "JetBrains Mono",monospace;overflow:hidden}
+  .recticle{width:62%;height:44%;border:2px dashed #ec3013;border-radius:4px}
+  .scanline{position:absolute;left:19%;right:19%;height:2px;background:#ec3013;top:50%;box-shadow:0 0 8px #ec3013}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t1">
+  <div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">CBIT Equipment Issuance — full screen flow (low-fi)</span></div>
+  <p class="dv-tsub">One structural pass of every core screen, tablet-landscape. Top track = Counter Operator rush-hour flow (scan → identify → select → issue). Bottom = Manager dashboard & reports. Red notes mark transitions & fallback paths. The two hero screens — <a class="dv-oid" href="#1d">1d</a> item grid and <a class="dv-oid" href="#1h">1h</a> dashboard — are the ones worth exploring layout variations on next.</p>
+
+  <div class="dv-opts" style="flex-direction:column;gap:40px">
+
+    <!-- ===== OPERATOR FLOW ===== -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="lbl" style="font-size:11px;color:#1b1f24">Track A · Counter Operator — issue flow</div>
+      <div class="flowrow" style="align-items:flex-start;gap:14px">
+
+        <!-- 1a scan -->
+        <div class="dv-opt" id="1a">
+          <div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Scan / identify student</div>
+          <div class="wf" style="width:340px">
+            <div class="wf-bar"><div class="wf-logo">CB</div><div class="wf-ttl">Issue</div><span class="wf-crumb">Scan</span><span class="wf-role">Operator · Counter&nbsp;1</span></div>
+            <div class="wf-body">
+              <div class="scan"><div class="recticle"></div><div class="scanline"></div><div style="position:absolute;bottom:8px">point camera at ID barcode</div></div>
+              <div class="txt muted" style="text-align:center">Hold the student's ID card in frame</div>
+              <div class="sep"></div>
+              <div class="lbl">Fallback</div>
+              <div class="btn blk"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>Search by roll number</div>
+              <div class="anno">↳ damaged card / bad light</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="arrow">known<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+
+        <!-- 1b resolved -->
+        <div class="dv-opt" id="1b">
+          <div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Student resolved</div>
+          <div class="wf" style="width:340px">
+            <div class="wf-bar"><div class="wf-logo">CB</div><div class="wf-ttl">Issue</div><span class="wf-crumb">Student</span><span class="wf-role">Operator</span></div>
+            <div class="wf-body">
+              <div class="badge ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>Matched · roll 160120733</div>
+              <div class="card" style="border-width:2px">
+                <div class="lbl">Student</div>
+                <div class="h2">A. Sharma</div>
+                <div class="txt">Roll 160120733 · CSE · Year 3</div>
+                <div class="txt muted" style="font-size:11px">No photo — roster not yet imported</div>
+              </div>
+              <div class="anno">↳ eligibility (gender × sport) precomputed here</div>
+              <div class="btn pri blk">Continue to items →</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="arrow">unknown<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M6 13l6 6 6-6"/></svg></div>
+
+        <!-- 1c enrollment -->
+        <div class="dv-opt" id="1c">
+          <div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Progressive enrollment</div>
+          <div class="wf" style="width:340px">
+            <div class="wf-bar"><div class="wf-logo">CB</div><div class="wf-ttl">Issue</div><span class="wf-crumb">New student</span><span class="wf-role">Operator</span></div>
+            <div class="wf-body">
+              <div class="badge info"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4m0 4h.01"/><circle cx="12" cy="12" r="9"/></svg>Barcode not on file · ~15s capture</div>
+              <div class="card">
+                <div class="lbl">Roll no</div><div class="line l"></div>
+                <div class="lbl">Name</div><div class="line l"></div>
+                <div class="wf-row"><div class="wf-col" style="flex:1"><div class="lbl">Gender</div><div class="line m"></div></div><div class="wf-col" style="flex:1"><div class="lbl">Year</div><div class="line s"></div></div></div>
+                <div class="lbl">Branch</div><div class="line m"></div>
+              </div>
+              <div class="anno">↳ written to shared master — once per student, ever</div>
+              <div class="btn pri blk">Save &amp; continue</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- second operator row -->
+      <div class="flowrow" style="align-items:flex-start;gap:14px;margin-top:6px">
+        <!-- 1d item grid HERO -->
+        <div class="dv-opt" id="1d">
+          <div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>Item selection grid <span style="color:#ec3013;font-weight:600">· hero</span></div>
+          <div class="wf">
+            <div class="wf-bar"><div class="wf-logo">CB</div><div class="wf-ttl">Issue · A. Sharma</div><span class="wf-crumb">Select item</span><span class="wf-role">Operator</span></div>
+            <div class="wf-body">
+              <div class="wf-row" style="align-items:center"><div class="lbl">Filter by sport</div>
+                <div style="display:flex;gap:7px;flex-wrap:wrap">
+                  <span class="chip" style="border-color:#c26b1f;color:#c26b1f"><span class="dot" style="background:#c26b1f"></span>Basketball</span>
+                  <span class="chip" style="border-color:#2f7d3f;color:#2f7d3f"><span class="dot" style="background:#2f7d3f"></span>Cricket</span>
+                  <span class="chip" style="border-color:#5b4bcf;color:#5b4bcf"><span class="dot" style="background:#5b4bcf"></span>TT</span>
+                  <span class="chip" style="border-color:#8a929d;color:#8a929d">+5</span>
+                </div>
+              </div>
+              <div class="grid">
+                <div class="item"><div class="wf-row" style="align-items:center"><span class="chip" style="border-color:#c26b1f;color:#c26b1f;padding:2px 7px"><span class="dot" style="background:#c26b1f"></span>BBall</span><span class="stk ok">18</span></div><div class="h2" style="font-size:13px">Basketball</div><div class="lbl" style="color:#8a929d">size 6 · size 7 →</div></div>
+                <div class="item"><div class="wf-row" style="align-items:center"><span class="chip" style="border-color:#2f7d3f;color:#2f7d3f;padding:2px 7px"><span class="dot" style="background:#2f7d3f"></span>Crkt</span><span class="stk low">3</span></div><div class="h2" style="font-size:13px">Cricket Kit</div><div class="lbl" style="color:#C97A1B">bundle · low</div></div>
+                <div class="item"><div class="wf-row" style="align-items:center"><span class="chip" style="border-color:#5b4bcf;color:#5b4bcf;padding:2px 7px"><span class="dot" style="background:#5b4bcf"></span>TT</span><span class="stk ok">24</span></div><div class="h2" style="font-size:13px">TT set</div><div class="lbl" style="color:#8a929d">bat · ball · both</div></div>
+                <div class="item"><div class="wf-row" style="align-items:center"><span class="chip" style="border-color:#1f7a8c;color:#1f7a8c;padding:2px 7px"><span class="dot" style="background:#1f7a8c"></span>Vlyl</span><span class="stk ok">9</span></div><div class="h2" style="font-size:13px">Volleyball</div></div>
+                <div class="item off"><div class="wf-row" style="align-items:center"><span class="chip" style="border-color:#8a929d;color:#8a929d;padding:2px 7px"><span class="dot" style="background:#8a929d"></span>Foot</span><span class="stk out">0</span></div><div class="h2" style="font-size:13px">Football</div><div class="lbl" style="color:#B3261E">out of stock</div></div>
+                <div class="item off"><div class="h2" style="font-size:13px">Badminton</div><div class="lbl" style="color:#8a929d">ineligible for filter</div></div>
+              </div>
+              <div class="anno">↳ list already excludes ineligible &amp; out — invalid options can't appear · dimmed = shown but not tappable</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+
+        <!-- 1e reason + confirm -->
+        <div class="dv-opt" id="1e">
+          <div class="dv-olabel"><a class="dv-oid" href="#1e">1e</a>Reason-for-free + confirm</div>
+          <div class="wf" style="width:340px">
+            <div class="wf-bar"><div class="wf-logo">CB</div><div class="wf-ttl">Confirm issue</div><span class="wf-crumb">Reason</span><span class="wf-role">Operator</span></div>
+            <div class="wf-body">
+              <div class="card">
+                <div class="lbl">Issuing</div>
+                <div class="wf-row" style="align-items:center"><span class="chip" style="border-color:#c26b1f;color:#c26b1f;padding:2px 7px"><span class="dot" style="background:#c26b1f"></span>BBall</span><div class="h2" style="font-size:13px">Basketball · size 7</div><span class="stk ok">×1</span></div>
+              </div>
+              <div class="lbl">Reason (single-select, fixed)</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <span class="pill on">Free Hour</span><span class="pill">Fit Hour</span><span class="pill">Lunch</span><span class="pill">After College</span><span class="pill">Practice</span>
+              </div>
+              <div class="anno">↳ no free text — FR-15</div>
+              <div class="sep"></div>
+              <div class="btn pri blk">Confirm issue</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+
+        <!-- 1f issued / offline -->
+        <div class="dv-opt" id="1f">
+          <div class="dv-olabel"><a class="dv-oid" href="#1f">1f</a>Issued — incl. offline state</div>
+          <div class="wf" style="width:300px">
+            <div class="wf-bar"><div class="wf-logo">CB</div><div class="wf-ttl">Issued</div><span class="wf-crumb">Done</span><span class="wf-role">Operator</span></div>
+            <div class="wf-body">
+              <div class="badge ok" style="font-size:13px;padding:9px 12px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>Issued · Basketball ×1</div>
+              <div class="txt">Stock 18 → 17. Logged to A. Sharma.</div>
+              <div class="sep"></div>
+              <div class="lbl">If offline</div>
+              <div class="badge info"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg>Saved — will sync when back online</div>
+              <div class="anno">↳ local queue · idempotency key</div>
+              <div class="btn pri blk">Next student →</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sep" style="opacity:.2"></div>
+
+    <!-- ===== MANAGER ===== -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="lbl" style="font-size:11px;color:#1b1f24">Track B · Manager / Admin</div>
+      <div class="flowrow" style="align-items:flex-start;gap:14px">
+
+        <!-- 1h dashboard HERO -->
+        <div class="dv-opt" id="1h">
+          <div class="dv-olabel"><a class="dv-oid" href="#1h">1h</a>Dashboard <span style="color:#ec3013;font-weight:600">· hero</span></div>
+          <div class="wf">
+            <div class="wf-bar"><div class="wf-logo">CB</div><div class="wf-ttl">Dashboard</div><span class="wf-crumb">Today</span><span class="wf-role">Manager</span></div>
+            <div class="wf-body">
+              <div class="wf-row">
+                <div class="kpi"><div class="lbl">Issued today</div><b>142</b></div>
+                <div class="kpi"><div class="lbl">Unique students</div><b>118</b></div>
+                <div class="kpi"><div class="lbl">Returns</div><b>96</b></div>
+                <div class="kpi" style="border-color:#C97A1B;background:#fdf5eb"><div class="lbl" style="color:#C97A1B">Low-stock alerts</div><b style="color:#C97A1B">4</b></div>
+              </div>
+              <div class="wf-row" style="align-items:stretch">
+                <div class="wf-col" style="flex:1.4">
+                  <div class="lbl">Live low-stock — realtime</div>
+                  <div class="card" style="border-left:4px solid #C97A1B;gap:6px;padding:10px 12px"><div class="wf-row" style="align-items:center"><span class="chip" style="border-color:#2f7d3f;color:#2f7d3f;padding:2px 7px"><span class="dot" style="background:#2f7d3f"></span>Crkt</span><div class="h2" style="font-size:13px">Cricket Kit</div><span class="stk low" style="margin-left:auto">3 / thr 5</span></div><div class="lbl" style="color:#8a929d">Counter 1 · restock soon</div></div>
+                  <div class="card" style="border-left:4px solid #B3261E;gap:6px;padding:10px 12px"><div class="wf-row" style="align-items:center"><span class="chip" style="border-color:#8a929d;color:#8a929d;padding:2px 7px"><span class="dot" style="background:#8a929d"></span>Foot</span><div class="h2" style="font-size:13px">Football</div><span class="stk out" style="margin-left:auto">0 / thr 4</span></div></div>
+                </div>
+                <div class="wf-col" style="flex:1">
+                  <div class="lbl">Recent activity</div>
+                  <div class="box" style="flex:1;min-height:110px">live transaction<br>feed — sport chip<br>+ student + reason</div>
+                </div>
+              </div>
+              <div class="anno">↳ alert fires inside the decrement txn, pushed via realtime channel — same-day restock</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1i reports -->
+        <div class="dv-opt" id="1i">
+          <div class="dv-olabel"><a class="dv-oid" href="#1i">1i</a>Reports (rollups)</div>
+          <div class="wf" style="width:400px">
+            <div class="wf-bar"><div class="wf-logo">CB</div><div class="wf-ttl">Reports</div><span class="wf-crumb">Weekly</span><span class="wf-role">Manager</span></div>
+            <div class="wf-body">
+              <div style="display:flex;gap:8px"><span class="pill">Daily</span><span class="pill on">Weekly</span><span class="pill">Monthly</span></div>
+              <table class="tbl">
+                <thead><tr><th>Sport</th><th>Issues</th><th>Students</th><th>Free hr</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="chip" style="border-color:#c26b1f;color:#c26b1f;padding:2px 7px"><span class="dot" style="background:#c26b1f"></span>Basketball</span></td><td>212</td><td>168</td><td>140</td></tr>
+                  <tr><td><span class="chip" style="border-color:#2f7d3f;color:#2f7d3f;padding:2px 7px"><span class="dot" style="background:#2f7d3f"></span>Cricket</span></td><td>98</td><td>77</td><td>61</td></tr>
+                  <tr><td><span class="chip" style="border-color:#5b4bcf;color:#5b4bcf;padding:2px 7px"><span class="dot" style="background:#5b4bcf"></span>Table Tennis</span></td><td>140</td><td>102</td><td>88</td></tr>
+                </tbody>
+              </table>
+              <div class="anno">↳ sums precomputed daily summaries — flat cost regardless of history</div>
+              <div class="btn blk">Export CSV</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1j equipment editor -->
+        <div class="dv-opt" id="1j">
+          <div class="dv-olabel"><a class="dv-oid" href="#1j">1j</a>Equipment &amp; rules editor</div>
+          <div class="wf" style="width:340px">
+            <div class="wf-bar"><div class="wf-logo">CB</div><div class="wf-ttl">Equipment</div><span class="wf-crumb">Edit</span><span class="wf-role">Manager</span></div>
+            <div class="wf-body">
+              <div class="card">
+                <div class="lbl">Item · Basketball</div>
+                <div class="wf-row"><div class="wf-col" style="flex:1"><div class="lbl">Variant pools</div><div class="line m"></div><div class="line s"></div></div><div class="wf-col" style="flex:1"><div class="lbl">Gender rule</div><div class="line m"></div></div></div>
+                <div class="wf-row"><div class="wf-col" style="flex:1"><div class="lbl">Low-stock thr</div><div class="line s"></div></div><div class="wf-col" style="flex:1"><div class="lbl">Max / issue</div><div class="line s"></div></div></div>
+              </div>
+              <div class="anno">↳ eligibility is data, not code — edits here reshape the operator grid</div>
+              <div class="btn pri blk">Save rules</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1k flagged / relink -->
+        <div class="dv-opt" id="1k">
+          <div class="dv-olabel"><a class="dv-oid" href="#1k">1k</a>Flagged items / relink card</div>
+          <div class="wf" style="width:340px">
+            <div class="wf-bar"><div class="wf-logo">CB</div><div class="wf-ttl">Flagged</div><span class="wf-crumb">Resolve</span><span class="wf-role">Manager</span></div>
+            <div class="wf-body">
+              <div class="card" style="border-left:4px solid #B3261E;gap:7px"><div class="badge out">Duplicate link blocked</div><div class="txt">Roll 160120733 already linked to another student. Review scan.</div><div class="wf-row" style="gap:8px"><span class="btn" style="flex:1;justify-content:center">Dismiss</span><span class="btn pri" style="flex:1;justify-content:center">Resolve</span></div></div>
+              <div class="card" style="gap:7px"><div class="lbl">Relink card (reissued roll no)</div><div class="txt muted" style="font-size:11px">Search old roll → update to new. Rare — not routine replacement.</div><div class="btn blk">Search &amp; relink</div></div>
+              <div class="card" style="gap:7px"><div class="lbl">Unmatched return</div><div class="txt muted" style="font-size:11px">Flag lost/damaged — flow not blocked.</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="dv-next">Try next: "give me 3 layout variations of <a class="dv-oid" href="#1d">1d</a> item grid" · "make a phone-portrait version of the operator flow" · "explore the <a class="dv-oid" href="#1h">1h</a> dashboard as a single-column tablet-portrait" · "add the return flow as its own screen" · "tighten to mid-fi with the real maroon/gold header"</p>
+</section>
+
+</x-dc>
+</body>
+</html>
