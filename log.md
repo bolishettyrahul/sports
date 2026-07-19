@@ -24,5 +24,5 @@ This document tracks all completed development tasks, specifications, and config
 - **FE-08 & FE-09 (Manager Dashboard & SSE)**: Developed KPI stats, low stock notifications, and live activity streams in `components/ManagerView.jsx`.
 - **FE-10 & FE-11 (Reports & Overrides)**: Coded rolling aggregate tables, local CSV downloads, rules editors, and roll relink tools.
 - **Verification**: Ran production build `npm run build` successfully (compiled cleanly in 942ms with 0 errors).
-- **Defensive Fixes**: Added robustness checks inside `services/api.js` and `components/ManagerView.jsx` to gracefully parse `localStorage` configurations and prevent dashboard loading crashes in case of empty or corrupt entries.
+- **Defensive Fixes**: Added robustness checks inside `services/api.js` and `components/ManagerView.jsx` to gracefully parse `localStorage` configurations and prevent dashboard loading crashes in case of empty or corrupt entries. Safeguarded session state JSON parsing on mount in `App.jsx` to prevent startup loading crashes on corrupt credentials strings.
 - **Development Logs**: Updated status indicators and completed logs inside `frontend/frontend/summary.md`.
