@@ -160,22 +160,27 @@ class MockDatabase {
   }
 
   init() {
-    if (!localStorage.getItem("cbit_students")) {
-      localStorage.setItem("cbit_students", JSON.stringify(DEFAULT_STUDENTS));
-    }
-    if (!localStorage.getItem("cbit_equipment")) {
-      localStorage.setItem("cbit_equipment", JSON.stringify(DEFAULT_EQUIPMENT));
-    }
-    if (!localStorage.getItem("cbit_transactions")) {
-      localStorage.setItem("cbit_transactions", JSON.stringify(DEFAULT_TRANSACTIONS));
-    }
-    if (!localStorage.getItem("cbit_processed_client_txs")) {
-      localStorage.setItem("cbit_processed_client_txs", JSON.stringify(["tx-client-init-1", "tx-client-init-2"]));
-    }
+    const checkAndSet = (key, defaultValue) => {
+      const val = localStorage.getItem(key);
+      if (!val || val === "null" || val === "undefined" || val.trim() === "") {
+        localStorage.setItem(key, JSON.stringify(defaultValue));
+      }
+    };
+    
+    checkAndSet("cbit_students", DEFAULT_STUDENTS);
+    checkAndSet("cbit_equipment", DEFAULT_EQUIPMENT);
+    checkAndSet("cbit_transactions", DEFAULT_TRANSACTIONS);
+    checkAndSet("cbit_processed_client_txs", ["tx-client-init-1", "tx-client-init-2"]);
   }
 
   getStudents() {
-    return JSON.parse(localStorage.getItem("cbit_students"));
+    try {
+      const data = localStorage.getItem("cbit_students");
+      if (!data || data === "null" || data === "undefined" || data.trim() === "") return DEFAULT_STUDENTS;
+      return JSON.parse(data) || DEFAULT_STUDENTS;
+    } catch (e) {
+      return DEFAULT_STUDENTS;
+    }
   }
 
   saveStudents(students) {
@@ -183,7 +188,13 @@ class MockDatabase {
   }
 
   getEquipment() {
-    return JSON.parse(localStorage.getItem("cbit_equipment"));
+    try {
+      const data = localStorage.getItem("cbit_equipment");
+      if (!data || data === "null" || data === "undefined" || data.trim() === "") return DEFAULT_EQUIPMENT;
+      return JSON.parse(data) || DEFAULT_EQUIPMENT;
+    } catch (e) {
+      return DEFAULT_EQUIPMENT;
+    }
   }
 
   saveEquipment(equipment) {
@@ -191,7 +202,13 @@ class MockDatabase {
   }
 
   getTransactions() {
-    return JSON.parse(localStorage.getItem("cbit_transactions"));
+    try {
+      const data = localStorage.getItem("cbit_transactions");
+      if (!data || data === "null" || data === "undefined" || data.trim() === "") return DEFAULT_TRANSACTIONS;
+      return JSON.parse(data) || DEFAULT_TRANSACTIONS;
+    } catch (e) {
+      return DEFAULT_TRANSACTIONS;
+    }
   }
 
   saveTransactions(transactions) {
@@ -199,7 +216,13 @@ class MockDatabase {
   }
 
   getProcessedClientTxs() {
-    return JSON.parse(localStorage.getItem("cbit_processed_client_txs"));
+    try {
+      const data = localStorage.getItem("cbit_processed_client_txs");
+      if (!data || data === "null" || data === "undefined" || data.trim() === "") return [];
+      return JSON.parse(data) || [];
+    } catch (e) {
+      return [];
+    }
   }
 
   saveProcessedClientTxs(txs) {

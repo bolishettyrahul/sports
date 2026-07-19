@@ -76,23 +76,24 @@ export default function ManagerView({ user, onLogout }) {
     fetchEquipment();
     
     // Seed default feed activities if empty
-    const txs = db.getTransactions();
-    const students = db.getStudents();
-    const equipment = db.getEquipment();
+    const txs = db.getTransactions() || [];
+    const students = db.getStudents() || [];
+    const equipment = db.getEquipment() || [];
 
     const initialFeed = txs.map(tx => {
-      const s = students.find(student => student.roll_no === tx.roll_no);
-      const e = equipment.find(item => item.id === tx.equipment_id);
-      const v = e ? e.variants.find(varnt => varnt.id === tx.variant_id) : null;
+      if (!tx) return null;
+      const s = students.find(student => student && student.roll_no === tx.roll_no);
+      const e = equipment.find(item => item && item.id === tx.equipment_id);
+      const v = e && e.variants ? e.variants.find(varnt => varnt && varnt.id === tx.variant_id) : null;
       return {
-        timestamp: tx.checked_out_at,
+        timestamp: tx.checked_out_at || new Date().toISOString(),
         student_name: s ? s.name : `Roll ${tx.roll_no}`,
         action: tx.returned_at ? "returned" : "issued",
         equipment_name: e ? e.name : tx.equipment_id,
         variant_name: v ? v.name : "",
         sport: e ? e.sport : "Sports"
       };
-    }).reverse();
+    }).filter(Boolean).reverse();
 
     setActivityFeed(initialFeed.slice(0, 10));
   };
@@ -100,23 +101,25 @@ export default function ManagerView({ user, onLogout }) {
   const fetchEquipment = async () => {
     try {
       const data = await apiService.getEquipment();
-      setEquipmentList(data);
+      setEquipmentList(data || []);
 
       // Filter and count low stock items
       const alerts = [];
-      data.forEach(item => {
-        item.variants.forEach(variant => {
-          if (variant.available_stock <= item.low_stock_threshold) {
-            alerts.push({
-              equipment_id: item.id,
-              equipment_name: item.name,
-              variant_id: variant.id,
-              variant_name: variant.name,
-              available_stock: variant.available_stock,
-              threshold: item.low_stock_threshold
-            });
-          }
-        });
+      (data || []).forEach(item => {
+        if (item && item.variants) {
+          item.variants.forEach(variant => {
+            if (variant && variant.available_stock <= item.low_stock_threshold) {
+              alerts.push({
+                equipment_id: item.id,
+                equipment_name: item.name,
+                variant_id: variant.id,
+                variant_name: variant.name,
+                available_stock: variant.available_stock,
+                threshold: item.low_stock_threshold
+              });
+            }
+          });
+        }
       });
       setLowStockAlerts(alerts);
       setKpis(prev => ({
