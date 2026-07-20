@@ -1,27 +1,33 @@
 import React, { useState, useEffect } from "react";
-import { apiService, db, generateUUID } from "../services/api";
-import { 
-  BarChart3, 
-  Activity, 
-  Settings, 
-  Flag, 
-  Download, 
-  TrendingUp, 
-  Users, 
-  RotateCcw, 
+import { apiService, db } from "../services/api";
+import {
+  BarChart3,
+  Activity,
+  Settings,
+  Flag,
+  Download,
   AlertTriangle,
   RefreshCw,
   Edit2,
-  Trash2,
-  Search,
-  Check,
+  CheckCircle2,
+  XCircle,
   LogOut
 } from "lucide-react";
 
-export default function ManagerView({ user, onLogout }) {
-  const [activeTab, setActiveTab] = useState("dashboard"); // dashboard, reports, equipment, flagged
+/** Equipment ids (`cricket_kit`) don't match the sport-chip classes; sport
+ *  names do. See the same helper in OperatorView. */
+const sportClass = (sport) => (sport || "").toLowerCase().replace(/\s+/g, "_");
 
-  // Live data feed states
+const TABS = [
+  { id: "dashboard", label: "Dashboard", icon: Activity },
+  { id: "reports", label: "Reports", icon: BarChart3 },
+  { id: "equipment", label: "Equipment & rules", icon: Settings },
+  { id: "flagged", label: "Flagged alerts", icon: Flag }
+];
+
+export default function ManagerView({ user, onLogout }) {
+  const [activeTab, setActiveTab] = useState("dashboard");
+
   const [kpis, setKpis] = useState({
     issuedToday: 142,
     uniqueStudents: 118,
@@ -30,71 +36,63 @@ export default function ManagerView({ user, onLogout }) {
   });
   const [lowStockAlerts, setLowStockAlerts] = useState([]);
   const [activityFeed, setActivityFeed] = useState([]);
-  
-  // Reports states
-  const [reportPeriod, setReportPeriod] = useState("WEEKLY"); // DAILY, WEEKLY, MONTHLY
+
+  const [reportPeriod, setReportPeriod] = useState("WEEKLY");
   const [reportData, setReportData] = useState([]);
 
-  // Equipment Editor states
   const [equipmentList, setEquipmentList] = useState([]);
-  const [editingItem, setEditingItem] = useState(null); // item rules model
-  const [restockItem, setRestockItem] = useState(null); // { itemId, variantId }
+  const [editingItem, setEditingItem] = useState(null);
+  const [restockItem, setRestockItem] = useState(null);
   const [restockQty, setRestockQty] = useState(5);
+  const [equipMessage, setEquipMessage] = useState({ text: "", type: "" });
 
-  // Administrative / Flagged states
   const [oldCardRoll, setOldCardRoll] = useState("");
   const [newCardRoll, setNewCardRoll] = useState("");
   const [adminMessage, setAdminMessage] = useState({ text: "", type: "" });
   const [flaggedCards, setFlaggedCards] = useState([
-    { id: "flag-1", type: "Duplicate link blocked", roll: "160120734", reason: "Card Roll Number already linked to another active session. Review required." }
+    {
+      id: "flag-1",
+      type: "Duplicate link blocked",
+      roll: "160120734",
+      reason: "Card roll number is already linked to another active session. Review required."
+    }
   ]);
 
-  // Load baseline datasets
   useEffect(() => {
     fetchBaselineData();
-    
-    // Subscribe to SSE Live Stream emulator
-    const unsubscribe = apiService.subscribeToLiveStream((eventObj) => {
-      handleSSEMessage(eventObj);
-    });
-
-    return () => {
-      unsubscribe();
-    };
+    const unsubscribe = apiService.subscribeToLiveStream(handleSSEMessage);
+    return () => unsubscribe();
   }, []);
 
-  // Recalculate states when active tab changes
   useEffect(() => {
-    if (activeTab === "equipment") {
-      fetchEquipment();
-    } else if (activeTab === "reports") {
-      generateReports();
-    }
+    if (activeTab === "equipment") fetchEquipment();
+    else if (activeTab === "reports") generateReports();
   }, [activeTab, reportPeriod]);
 
   const fetchBaselineData = async () => {
-    // Fetch initial low stock and feed logs from mock database
     fetchEquipment();
-    
-    // Seed default feed activities if empty
+
     const txs = db.getTransactions() || [];
     const students = db.getStudents() || [];
     const equipment = db.getEquipment() || [];
 
-    const initialFeed = txs.map(tx => {
-      if (!tx) return null;
-      const s = students.find(student => student && student.roll_no === tx.roll_no);
-      const e = equipment.find(item => item && item.id === tx.equipment_id);
-      const v = e && e.variants ? e.variants.find(varnt => varnt && varnt.id === tx.variant_id) : null;
-      return {
-        timestamp: tx.checked_out_at || new Date().toISOString(),
-        student_name: s ? s.name : `Roll ${tx.roll_no}`,
-        action: tx.returned_at ? "returned" : "issued",
-        equipment_name: e ? e.name : tx.equipment_id,
-        variant_name: v ? v.name : "",
-        sport: e ? e.sport : "Sports"
-      };
-    }).filter(Boolean).reverse();
+    const initialFeed = txs
+      .map((tx) => {
+        if (!tx) return null;
+        const s = students.find((student) => student && student.roll_no === tx.roll_no);
+        const e = equipment.find((item) => item && item.id === tx.equipment_id);
+        const v = e && e.variants ? e.variants.find((varnt) => varnt && varnt.id === tx.variant_id) : null;
+        return {
+          timestamp: tx.checked_out_at || new Date().toISOString(),
+          student_name: s ? s.name : `Roll ${tx.roll_no}`,
+          action: tx.returned_at ? "returned" : "issued",
+          equipment_name: e ? e.name : tx.equipment_id,
+          variant_name: v ? v.name : "",
+          sport: e ? e.sport : "Sports"
+        };
+      })
+      .filter(Boolean)
+      .reverse();
 
     setActivityFeed(initialFeed.slice(0, 10));
   };
@@ -104,42 +102,34 @@ export default function ManagerView({ user, onLogout }) {
       const data = await apiService.getEquipment();
       setEquipmentList(data || []);
 
-      // Filter and count low stock items
       const alerts = [];
-      (data || []).forEach(item => {
-        if (item && item.variants) {
-          item.variants.forEach(variant => {
-            if (variant && variant.available_stock <= item.low_stock_threshold) {
-              alerts.push({
-                equipment_id: item.id,
-                equipment_name: item.name,
-                variant_id: variant.id,
-                variant_name: variant.name,
-                available_stock: variant.available_stock,
-                threshold: item.low_stock_threshold
-              });
-            }
-          });
-        }
+      (data || []).forEach((item) => {
+        if (!item || !item.variants) return;
+        item.variants.forEach((variant) => {
+          if (variant && variant.available_stock <= item.low_stock_threshold) {
+            alerts.push({
+              equipment_id: item.id,
+              equipment_name: item.name,
+              sport: item.sport,
+              variant_id: variant.id,
+              variant_name: variant.name,
+              available_stock: variant.available_stock,
+              threshold: item.low_stock_threshold
+            });
+          }
+        });
       });
       setLowStockAlerts(alerts);
-      setKpis(prev => ({
-        ...prev,
-        lowStockAlertsCount: alerts.length
-      }));
+      setKpis((prev) => ({ ...prev, lowStockAlertsCount: alerts.length }));
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleSSEMessage = (eventObj) => {
-    const { event, data } = eventObj;
-
+  const handleSSEMessage = ({ event, data }) => {
     if (event === "activity") {
-      setActivityFeed(prev => [data, ...prev].slice(0, 12));
-      
-      // Update KPIs incrementally
-      setKpis(prev => {
+      setActivityFeed((prev) => [data, ...prev].slice(0, 12));
+      setKpis((prev) => {
         const isIssue = data.action === "issued";
         return {
           ...prev,
@@ -148,15 +138,16 @@ export default function ManagerView({ user, onLogout }) {
         };
       });
     } else if (event === "low_stock") {
-      setLowStockAlerts(prev => {
-        // Avoid duplicate alerts in list
-        const exists = prev.some(a => a.equipment_id === data.equipment_id && a.variant_id === data.variant_id);
+      setLowStockAlerts((prev) => {
+        const exists = prev.some((a) => a.equipment_id === data.equipment_id && a.variant_id === data.variant_id);
         if (exists) {
-          return prev.map(a => (a.equipment_id === data.equipment_id && a.variant_id === data.variant_id) ? data : a);
+          return prev.map((a) =>
+            a.equipment_id === data.equipment_id && a.variant_id === data.variant_id ? data : a
+          );
         }
         return [data, ...prev];
       });
-      setKpis(prev => ({ ...prev, lowStockAlertsCount: prev.lowStockAlertsCount + 1 }));
+      setKpis((prev) => ({ ...prev, lowStockAlertsCount: prev.lowStockAlertsCount + 1 }));
     }
   };
 
@@ -167,9 +158,13 @@ export default function ManagerView({ user, onLogout }) {
     try {
       await apiService.restockEquipment(restockItem.equipment_id, restockItem.variant_id, restockQty);
       setRestockItem(null);
+      setEquipMessage({ text: `Added ${restockQty} to ${restockItem.equipment_name}.`, type: "success" });
       fetchEquipment();
     } catch (err) {
-      alert("Restock failed: " + err.message);
+      setEquipMessage({
+        text: `${err.message || "Restock failed."} Stock was not changed — check the quantity and try again.`,
+        type: "error"
+      });
     }
   };
 
@@ -179,33 +174,35 @@ export default function ManagerView({ user, onLogout }) {
 
     try {
       await apiService.updateEquipmentRules(editingItem);
+      setEquipMessage({ text: `Rules updated for ${editingItem.name}.`, type: "success" });
       setEditingItem(null);
       fetchEquipment();
     } catch (err) {
-      alert("Failed to update rules: " + err.message);
+      setEquipMessage({
+        text: `${err.message || "Could not update the rules."} No changes were saved.`,
+        type: "error"
+      });
     }
   };
 
   const handleRelinkSubmit = async (e) => {
     e.preventDefault();
     if (!oldCardRoll || !newCardRoll) {
-      setAdminMessage({ text: "Please enter both roll numbers.", type: "error" });
+      setAdminMessage({ text: "Enter both the current and the replacement roll number.", type: "error" });
       return;
     }
 
     try {
       await apiService.relinkCard(oldCardRoll.trim(), newCardRoll.trim());
-      setAdminMessage({ text: `Successfully relinked Card Roll ${oldCardRoll} to new ID ${newCardRoll}.`, type: "success" });
+      setAdminMessage({ text: `Relinked roll ${oldCardRoll} to ${newCardRoll}.`, type: "success" });
       setOldCardRoll("");
       setNewCardRoll("");
     } catch (err) {
-      setAdminMessage({ text: err.message || "Failed to relink card.", type: "error" });
+      setAdminMessage({ text: err.message || "Could not relink the card. Check both roll numbers.", type: "error" });
     }
   };
 
-  // Generate mock rollup reports
   const generateReports = () => {
-    // Predefined report stats mapping to our mock inventory
     const reports = [
       { sport: "Basketball", issues: 212, students: 168, returns: 198, top_reason: "Free Hour" },
       { sport: "Table Tennis", issues: 140, students: 102, returns: 131, top_reason: "Lunch Hour" },
@@ -214,627 +211,679 @@ export default function ManagerView({ user, onLogout }) {
       { sport: "Carrom", issues: 42, students: 30, returns: 39, top_reason: "After College" }
     ];
 
-    // Modify counts slightly depending on reporting period for visual realism
     const multiplier = reportPeriod === "DAILY" ? 0.15 : reportPeriod === "MONTHLY" ? 4.2 : 1;
-    const finalData = reports.map(r => ({
-      sport: r.sport,
-      issues: Math.round(r.issues * multiplier),
-      students: Math.round(r.students * multiplier),
-      returns: Math.round(r.returns * multiplier),
-      top_reason: r.top_reason
-    }));
-
-    setReportData(finalData);
+    setReportData(
+      reports.map((r) => ({
+        sport: r.sport,
+        issues: Math.round(r.issues * multiplier),
+        students: Math.round(r.students * multiplier),
+        returns: Math.round(r.returns * multiplier),
+        top_reason: r.top_reason
+      }))
+    );
   };
 
-  // Export report table as CSV file
+  // Blob rather than a data: URI — encodeURI breaks on '#' and hits URL length
+  // limits as the report grows.
   const exportCSV = () => {
-    let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Sport,Issues,Unique Students,Returns,Top Reason\n";
-    
-    reportData.forEach(row => {
-      csvContent += `"${row.sport}",${row.issues},${row.students},${row.returns},"${row.top_reason}"\n`;
-    });
+    const escape = (value) => `"${String(value).replace(/"/g, '""')}"`;
+    const rows = [
+      ["Sport", "Issues", "Unique Students", "Returns", "Top Reason"],
+      ...reportData.map((r) => [r.sport, r.issues, r.students, r.returns, r.top_reason])
+    ];
+    const csv = rows.map((row) => row.map(escape).join(",")).join("\r\n");
 
-    const encodedUri = encodeURI(csvContent);
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `CBIT_Sports_Report_${reportPeriod.toLowerCase()}_${new Date().toISOString().slice(0,10)}.csv`);
+    link.href = url;
+    link.download = `CBIT_Sports_Report_${reportPeriod.toLowerCase()}_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="app-container manager-density" style={{ background: "var(--color-bg)" }}>
-      <div className="device-frame" style={{ flex: 1, minHeight: "calc(100vh - 44px)", margin: "20px auto" }}>
-        
-        {/* TOP HEADER */}
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "16px",
-          padding: "10px 22px",
-          borderBottom: "2px solid var(--color-brand-charcoal)",
-          backgroundColor: "white"
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <div style={{
-              width: "36px",
-              height: "36px",
-              background: "var(--color-brand-maroon)",
-              color: "white",
-              display: "grid",
-              placeItems: "center",
-              fontWeight: 800,
-              fontSize: "14px",
-              border: "1.5px solid var(--color-brand-charcoal)"
-            }}>
-              CB
-            </div>
-            <div>
-              <h2 style={{ fontSize: "14px", fontWeight: 800, lineHeight: 1.1 }}>Equipment Admin</h2>
-              <span className="font-mono text-muted" style={{ fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                CBIT Sports
-              </span>
-            </div>
-          </div>
-
-          {/* Navigation Tabs */}
-          <div style={{ display: "flex", gap: "2px", marginLeft: "24px", alignSelf: "stretch" }}>
-            {[
-              { id: "dashboard", label: "Dashboard", icon: <Activity size={14} /> },
-              { id: "reports", label: "Reports", icon: <BarChart3 size={14} /> },
-              { id: "equipment", label: "Equipment & Rules", icon: <Settings size={14} /> },
-              { 
-                id: "flagged", 
-                label: `Flagged Alerts (${flaggedCards.length})`, 
-                icon: <Flag size={14} />,
-                badge: flaggedCards.length > 0
-              }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  border: "none",
-                  borderBottom: activeTab === tab.id ? "3px solid var(--color-brand-maroon)" : "3px solid transparent",
-                  backgroundColor: "transparent",
-                  padding: "0 16px",
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  color: activeTab === tab.id ? "var(--color-brand-charcoal)" : "var(--color-text-muted)"
-                }}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "14px" }}>
-            <span className="badge badge-ok" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-              <RefreshCw size={11} className="animate-spin" />
-              Live Stream
-            </span>
-
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", lineHeight: 1.1 }}>
-              <span style={{ fontSize: "12px", fontWeight: 600 }}>{user.name || "Manager"}</span>
-              <span className="font-mono text-muted" style={{ fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Manager</span>
-            </div>
-            
-            <div style={{
-              width: "32px",
-              height: "32px",
-              border: "1.5px solid var(--color-brand-charcoal)",
-              backgroundColor: "var(--color-bg)",
-              display: "grid",
-              placeItems: "center",
-              fontWeight: 800,
-              fontSize: "11px"
-            }}>
-              {user.name ? user.name.split(" ").map(n=>n[0]).join("") : "MGR"}
-            </div>
-
-            <button 
-              className="btn btn-secondary touch-target" 
-              onClick={onLogout}
-              style={{ width: "32px", height: "32px", padding: 0 }}
+    <div className="app-shell">
+      <header className="app-header">
+        <div className="app-header-brand">
+          <div className="app-header-mark">CB</div>
+          <div>
+            <h1 style={{ fontSize: "var(--text-sm)", fontWeight: 800, lineHeight: 1.15 }}>Equipment Admin</h1>
+            <span
+              className="font-mono text-muted"
+              style={{ fontSize: "var(--text-2xs)", textTransform: "uppercase", letterSpacing: "0.08em" }}
             >
-              <LogOut size={13} />
-            </button>
+              CBIT Sports
+            </span>
           </div>
         </div>
 
-        {/* ACTIVE TAB CONTAINER */}
-        <div style={{ padding: "24px", overflowY: "auto", maxHeight: "calc(100vh - 120px)" }}>
+        <div className="mgr-nav" role="tablist" aria-label="Manager sections">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            const selected = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                id={`tab-${tab.id}`}
+                role="tab"
+                type="button"
+                aria-selected={selected}
+                aria-controls={`panel-${tab.id}`}
+                tabIndex={selected ? 0 : -1}
+                onClick={() => setActiveTab(tab.id)}
+                className="tab-button"
+              >
+                <Icon size={14} aria-hidden="true" />
+                {tab.label}
+                {tab.id === "flagged" && flaggedCards.length > 0 && (
+                  <span className="badge badge-out" style={{ padding: "0 6px" }}>
+                    {flaggedCards.length}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
 
-          {/* TAB 1: DASHBOARD VIEW */}
-          {activeTab === "dashboard" && (
-            <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-              
-              {/* KPI Scorecard Row */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px" }}>
-                {[
-                  { label: "Issued Today", value: kpis.issuedToday, indicator: "▲ 12% vs avg", indColor: "var(--color-success)" },
-                  { label: "Unique Students", value: kpis.uniqueStudents, indicator: "across 1 counter", indColor: "var(--color-text-dim)" },
-                  { label: "Returns Today", value: kpis.returnsToday, indicator: "46 outstanding", indColor: "var(--color-text-muted)" },
-                  { 
-                    label: "Low-Stock Alerts", 
-                    value: kpis.lowStockAlertsCount, 
-                    indicator: "restock immediately", 
-                    indColor: kpis.lowStockAlertsCount > 0 ? "var(--color-warning)" : "var(--color-text-dim)",
-                    warning: kpis.lowStockAlertsCount > 0
-                  }
-                ].map((kpi, i) => (
-                  <div 
-                    key={i} 
-                    className="card" 
-                    style={{ 
-                      padding: "16px", 
-                      display: "flex", 
-                      flexDirection: "column", 
-                      gap: "6px",
-                      borderColor: kpi.warning ? "var(--color-warning-border)" : "var(--color-divider)",
-                      backgroundColor: kpi.warning ? "var(--color-warning-bg)" : "white"
-                    }}
+        <div className="app-header-actions">
+          <span className="badge badge-ok">
+            <RefreshCw size={11} className="animate-spin" aria-hidden="true" />
+            Live stream
+          </span>
+
+          <div className="app-header-identity">
+            <span style={{ fontSize: "var(--text-xs)", fontWeight: 600 }}>{user.name || "Manager"}</span>
+            <span
+              className="font-mono text-muted"
+              style={{ fontSize: "var(--text-2xs)", textTransform: "uppercase", letterSpacing: "0.05em" }}
+            >
+              Manager
+            </span>
+          </div>
+
+          <div className="app-avatar" aria-hidden="true">
+            {user.name ? user.name.split(" ").map((n) => n[0]).join("") : "MGR"}
+          </div>
+
+          <button className="btn btn-secondary btn-icon" onClick={onLogout} aria-label="Sign out">
+            <LogOut size={14} aria-hidden="true" />
+          </button>
+        </div>
+      </header>
+
+      <main className="mgr-content">
+        {/* ------------------------------------------------------------ */}
+        {/* DASHBOARD                                                     */}
+        {/* ------------------------------------------------------------ */}
+        {activeTab === "dashboard" && (
+          <div
+            id="panel-dashboard"
+            role="tabpanel"
+            aria-labelledby="tab-dashboard"
+            className="animate-fade-in"
+            style={{ display: "flex", flexDirection: "column", gap: "var(--space-xl)" }}
+          >
+            <div className="mgr-kpi-grid">
+              {[
+                { label: "Issued today", value: kpis.issuedToday, indicator: "▲ 12% vs avg", indColor: "var(--color-success)" },
+                { label: "Unique students", value: kpis.uniqueStudents, indicator: "across 1 counter", indColor: "var(--color-text-dim)" },
+                { label: "Returns today", value: kpis.returnsToday, indicator: "46 outstanding", indColor: "var(--color-text-muted)" },
+                {
+                  label: "Low-stock alerts",
+                  value: kpis.lowStockAlertsCount,
+                  indicator: "restock immediately",
+                  indColor: kpis.lowStockAlertsCount > 0 ? "var(--color-warning)" : "var(--color-text-dim)",
+                  warning: kpis.lowStockAlertsCount > 0
+                }
+              ].map((kpi) => (
+                <div
+                  key={kpi.label}
+                  className="card"
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "var(--space-xs)",
+                    borderColor: kpi.warning ? "var(--color-warning-border)" : "var(--color-divider)",
+                    backgroundColor: kpi.warning ? "var(--color-warning-bg)" : "var(--color-surface)"
+                  }}
+                >
+                  <span
+                    className="font-mono text-muted"
+                    style={{ fontSize: "var(--text-2xs)", textTransform: "uppercase", letterSpacing: "0.07em" }}
                   >
-                    <span className="font-mono text-muted" style={{ fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.07em" }}>
-                      {kpi.label}
-                    </span>
-                    <b className="font-mono" style={{ fontSize: "28px", lineHeight: 1.1 }}>{kpi.value}</b>
-                    <span style={{ fontSize: "11px", fontWeight: 500, color: kpi.indColor }}>{kpi.indicator}</span>
-                  </div>
-                ))}
-              </div>
+                    {kpi.label}
+                  </span>
+                  <b className="font-mono tabular" style={{ fontSize: "var(--text-2xl)", lineHeight: 1.1 }}>
+                    {kpi.value}
+                  </b>
+                  <span style={{ fontSize: "var(--text-2xs)", fontWeight: 500, color: kpi.indColor }}>{kpi.indicator}</span>
+                </div>
+              ))}
+            </div>
 
-              {/* Lower Section Split */}
-              <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "24px", alignItems: "start" }}>
-                
-                {/* Real-time Alerts Panel */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  <h3 className="form-label">Realtime Stock Alerts</h3>
-                  
+            <div className="mgr-split">
+              <section className="mgr-panel" aria-label="Realtime stock alerts">
+                <h2 className="form-label">Realtime stock alerts</h2>
+
+                {equipMessage.text && (
+                  <div
+                    role="status"
+                    className={`badge ${equipMessage.type === "success" ? "badge-ok" : "badge-out"}`}
+                    style={{ width: "100%", padding: "var(--space-sm)" }}
+                  >
+                    {equipMessage.type === "success" ? (
+                      <CheckCircle2 size={14} aria-hidden="true" />
+                    ) : (
+                      <XCircle size={14} aria-hidden="true" />
+                    )}
+                    {equipMessage.text}
+                  </div>
+                )}
+
+                <div aria-live="polite" style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
                   {lowStockAlerts.length === 0 ? (
-                    <div className="card" style={{ padding: "20px", textAlign: "center", color: "var(--color-text-dim)", borderStyle: "dashed" }}>
-                      No low stock alerts triggered. All inventory levels normal.
+                    <div
+                      className="card"
+                      style={{ textAlign: "center", color: "var(--color-text-muted)", borderStyle: "dashed" }}
+                    >
+                      No low-stock alerts. All inventory levels are normal.
                     </div>
                   ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                      {lowStockAlerts.map((alert, i) => (
-                        <div 
-                          key={i} 
-                          className="card animate-fade-in"
-                          style={{
-                            padding: "12px 16px",
-                            borderLeft: "4px solid var(--color-warning)",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "14px"
-                          }}
-                        >
-                          <span className={`sport-chip ${alert.equipment_id}`}>
-                            {alert.equipment_name.split(" ")[0]}
-                          </span>
-                          
-                          <div>
-                            <h4 style={{ fontSize: "13.5px", fontWeight: 700 }}>
-                              {alert.equipment_name} · {alert.variant_name}
-                            </h4>
-                            <p style={{ fontSize: "11px", color: "var(--color-text-dim)" }}>
-                              Counter 1 · available stock is critically low
-                            </p>
-                          </div>
+                    lowStockAlerts.map((alert) => (
+                      <div
+                        key={`${alert.equipment_id}-${alert.variant_id}`}
+                        className="card animate-fade-in"
+                        style={{
+                          borderLeft: "4px solid var(--color-warning)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "var(--space-md)",
+                          flexWrap: "wrap"
+                        }}
+                      >
+                        <AlertTriangle size={16} aria-hidden="true" style={{ color: "var(--color-warning)", flexShrink: 0 }} />
 
-                          <div style={{ marginLeft: "auto", textAlign: "right" }}>
-                            <span className="font-mono" style={{ fontSize: "16px", fontWeight: 700, color: "var(--color-brand-gold-dark)" }}>
-                              {alert.available_stock}
-                            </span>
-                            <span className="font-mono text-dim" style={{ fontSize: "11px" }}> / thr {alert.threshold}</span>
-                          </div>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <h3 style={{ fontSize: "var(--text-sm)", fontWeight: 700 }}>
+                            {alert.equipment_name} · {alert.variant_name}
+                          </h3>
+                          <p style={{ fontSize: "var(--text-2xs)", color: "var(--color-text-muted)" }}>
+                            {user.location || "Counter 1"} · available stock is critically low
+                          </p>
+                        </div>
 
-                          <button 
-                            className="btn btn-secondary touch-target"
-                            onClick={() => setRestockItem(alert)}
-                            style={{ padding: "0 10px" }}
+                        <div style={{ textAlign: "right" }}>
+                          <span
+                            className="font-mono tabular"
+                            style={{ fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--color-brand-gold-dark)" }}
                           >
-                            Restock
-                          </button>
+                            {alert.available_stock}
+                          </span>
+                          <span className="font-mono text-dim" style={{ fontSize: "var(--text-2xs)" }}>
+                            {" "}
+                            / thr {alert.threshold}
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  )}
 
-                  {/* Restock Modal/Form if selected */}
-                  {restockItem && (
-                    <form onSubmit={handleRestockSubmit} className="card animate-fade-in" style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "12px", border: "2px solid var(--color-brand-charcoal)" }}>
-                      <h4 style={{ fontSize: "14px", fontWeight: 700 }}>
-                        Restock {restockItem.equipment_name} ({restockItem.variant_name})
-                      </h4>
-                      <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
-                        <div className="form-group" style={{ flex: 1 }}>
-                          <label className="form-label">Add Quantity</label>
-                          <input 
-                            type="number" 
-                            className="form-input"
-                            style={{ width: "100%" }}
-                            value={restockQty}
-                            onChange={(e) => setRestockQty(parseInt(e.target.value))}
-                            min="1"
-                            required
-                          />
-                        </div>
-                        <button type="submit" className="btn btn-primary touch-target" style={{ height: "32px", padding: "0 16px" }}>
-                          Add to stock
-                        </button>
-                        <button type="button" className="btn btn-secondary touch-target" style={{ height: "32px" }} onClick={() => setRestockItem(null)}>
-                          Cancel
+                        <button className="btn btn-secondary" onClick={() => setRestockItem(alert)}>
+                          Restock
                         </button>
                       </div>
-                    </form>
+                    ))
                   )}
                 </div>
 
-                {/* Live Activity Feed Panel */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  <h3 className="form-label">Live Activity Feed (Realtime)</h3>
-                  <div style={{ 
-                    display: "flex", 
-                    flexDirection: "column", 
-                    border: "1.5px solid var(--color-divider)", 
-                    borderRadius: "var(--border-radius-sm)", 
-                    overflow: "hidden",
-                    backgroundColor: "white"
-                  }}>
-                    {activityFeed.map((activity, i) => (
-                      <div 
-                        key={i} 
+                {restockItem && (
+                  <form
+                    onSubmit={handleRestockSubmit}
+                    className="card animate-fade-in"
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "var(--space-md)",
+                      border: "2px solid var(--color-brand-charcoal)"
+                    }}
+                  >
+                    <h3 style={{ fontSize: "var(--text-sm)", fontWeight: 700 }}>
+                      Restock {restockItem.equipment_name} ({restockItem.variant_name})
+                    </h3>
+                    <div style={{ display: "flex", gap: "var(--space-sm)", alignItems: "flex-end", flexWrap: "wrap" }}>
+                      <div className="form-group" style={{ flex: 1, minWidth: "140px" }}>
+                        <label className="form-label" htmlFor="restock-qty">Add quantity</label>
+                        <input
+                          id="restock-qty"
+                          type="number"
+                          className="form-input"
+                          value={restockQty}
+                          onChange={(e) => setRestockQty(parseInt(e.target.value, 10))}
+                          min="1"
+                          required
+                        />
+                      </div>
+                      <button type="submit" className="btn btn-primary">Add to stock</button>
+                      <button type="button" className="btn btn-secondary" onClick={() => setRestockItem(null)}>
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </section>
+
+              <section className="mgr-panel" aria-label="Live activity feed">
+                <h2 className="form-label">Live activity feed</h2>
+                <div className="mgr-feed" aria-live="polite">
+                  {activityFeed.length === 0 ? (
+                    <div style={{ padding: "var(--space-xl)", textAlign: "center", color: "var(--color-text-muted)" }}>
+                      No activity yet today.
+                    </div>
+                  ) : (
+                    activityFeed.map((activity, i) => (
+                      <div
+                        key={`${activity.timestamp}-${i}`}
                         className="animate-fade-in"
                         style={{
                           display: "flex",
                           alignItems: "center",
-                          gap: "12px",
-                          padding: "10px 14px",
+                          gap: "var(--space-md)",
+                          padding: "var(--space-sm) var(--space-md)",
                           borderBottom: i === activityFeed.length - 1 ? "none" : "1px solid var(--color-divider-light)"
                         }}
                       >
-                        <span className={`sport-chip ${activity.sport.toLowerCase().replace(" ", "_")}`} style={{ padding: "2px 6px" }}>
-                          {activity.sport.substring(0, 5)}
+                        <span className={`sport-chip ${sportClass(activity.sport)}`}>
+                          <span className={`sport-dot ${sportClass(activity.sport)}`} />
+                          {activity.sport}
                         </span>
-                        
-                        <div style={{ fontSize: "12px" }}>
+
+                        <div style={{ fontSize: "var(--text-xs)", minWidth: 0 }}>
                           <strong style={{ fontWeight: 600 }}>{activity.student_name}</strong>
-                          <span style={{ color: "var(--color-text-muted)" }}>
-                            {" "}{activity.action}{" "}
-                          </span>
+                          <span className="text-muted"> {activity.action} </span>
                           <strong>{activity.equipment_name}</strong>
                           {activity.variant_name && <span className="text-dim"> ({activity.variant_name})</span>}
                         </div>
 
-                        <span className="font-mono text-dim" style={{ marginLeft: "auto", fontSize: "10px" }}>
-                          {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        <span className="font-mono text-dim tabular" style={{ marginLeft: "auto", fontSize: "var(--text-2xs)" }}>
+                          {new Date(activity.timestamp).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit"
+                          })}
                         </span>
                       </div>
-                    ))}
-                  </div>
+                    ))
+                  )}
                 </div>
-
-              </div>
+              </section>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* TAB 2: REPORTS VIEW */}
-          {activeTab === "reports" && (
-            <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-              
-              <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                <h3 className="form-label">Precomputed Rolling Summaries</h3>
-                
-                {/* Period Selectors */}
-                <div style={{ display: "flex", gap: "4px", marginLeft: "auto" }}>
-                  {["DAILY", "WEEKLY", "MONTHLY"].map(period => (
-                    <button
-                      key={period}
-                      onClick={() => setReportPeriod(period)}
-                      className={`btn touch-target ${reportPeriod === period ? 'btn-primary' : 'btn-secondary'}`}
-                      style={{ height: "30px", fontSize: "11.5px" }}
-                    >
-                      {period}
-                    </button>
-                  ))}
-                </div>
+        {/* ------------------------------------------------------------ */}
+        {/* REPORTS                                                       */}
+        {/* ------------------------------------------------------------ */}
+        {activeTab === "reports" && (
+          <div
+            id="panel-reports"
+            role="tabpanel"
+            aria-labelledby="tab-reports"
+            className="animate-fade-in"
+            style={{ display: "flex", flexDirection: "column", gap: "var(--space-lg)" }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-md)", flexWrap: "wrap" }}>
+              <h2 className="form-label">Precomputed rolling summaries</h2>
 
-                <button 
-                  onClick={exportCSV}
-                  className="btn btn-secondary touch-target"
-                  style={{ height: "30px", display: "flex", alignItems: "center", gap: "6px" }}
-                >
-                  <Download size={13} />
-                  Export CSV
-                </button>
+              <div style={{ display: "flex", gap: "var(--space-xs)", marginLeft: "auto" }} role="group" aria-label="Report period">
+                {["DAILY", "WEEKLY", "MONTHLY"].map((period) => (
+                  <button
+                    key={period}
+                    onClick={() => setReportPeriod(period)}
+                    aria-pressed={reportPeriod === period}
+                    className={`btn ${reportPeriod === period ? "btn-primary" : "btn-secondary"}`}
+                  >
+                    {period}
+                  </button>
+                ))}
               </div>
 
-              {/* Reports Table */}
-              <div className="table-container">
-                <table className="table-view">
-                  <thead>
-                    <tr>
-                      <th>Sport</th>
-                      <th className="num-cell">Total Issues</th>
-                      <th className="num-cell">Unique Students</th>
-                      <th className="num-cell">Returns Processed</th>
-                      <th>Top Issue Reason</th>
+              <button onClick={exportCSV} className="btn btn-secondary">
+                <Download size={13} aria-hidden="true" />
+                Export CSV
+              </button>
+            </div>
+
+            <div className="table-container">
+              <table className="table-view">
+                <caption className="visually-hidden">
+                  {reportPeriod.toLowerCase()} issue summary by sport
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Sport</th>
+                    <th scope="col" className="num-cell">Total issues</th>
+                    <th scope="col" className="num-cell">Unique students</th>
+                    <th scope="col" className="num-cell">Returns processed</th>
+                    <th scope="col">Top issue reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.map((row) => (
+                    <tr key={row.sport}>
+                      <th scope="row">
+                        <span className={`sport-chip ${sportClass(row.sport)}`}>
+                          <span className={`sport-dot ${sportClass(row.sport)}`} />
+                          {row.sport}
+                        </span>
+                      </th>
+                      <td className="num-cell" style={{ fontWeight: 700 }}>{row.issues}</td>
+                      <td className="num-cell">{row.students}</td>
+                      <td className="num-cell">{row.returns}</td>
+                      <td>
+                        <span className="badge badge-info">{row.top_reason}</span>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {reportData.map((row, i) => (
-                      <tr key={i}>
-                        <td style={{ fontWeight: 600 }}>
-                          <span className={`sport-chip ${row.sport.toLowerCase().replace(" ", "_")}`} style={{ marginRight: "10px" }}>
-                            <span className={`sport-dot ${row.sport.toLowerCase().replace(" ", "_")}`}></span>
-                            {row.sport}
-                          </span>
-                        </td>
-                        <td className="num-cell" style={{ fontWeight: 700 }}>{row.issues}</td>
-                        <td className="num-cell">{row.students}</td>
-                        <td className="num-cell">{row.returns}</td>
-                        <td>
-                          <span className="badge badge-info">{row.top_reason}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* TAB 3: EQUIPMENT EDITOR */}
-          {activeTab === "equipment" && (
-            <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-              <h3 className="form-label">Data-driven Rules Configuration</h3>
+        {/* ------------------------------------------------------------ */}
+        {/* EQUIPMENT & RULES                                             */}
+        {/* ------------------------------------------------------------ */}
+        {activeTab === "equipment" && (
+          <div
+            id="panel-equipment"
+            role="tabpanel"
+            aria-labelledby="tab-equipment"
+            className="animate-fade-in"
+            style={{ display: "flex", flexDirection: "column", gap: "var(--space-lg)" }}
+          >
+            <h2 className="form-label">Data-driven rules configuration</h2>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: "24px", alignItems: "start" }}>
-                
-                {/* Equipment List Grid */}
-                <div style={{ display: "grid", gap: "10px" }}>
-                  {equipmentList.map(item => (
-                    <div 
-                      key={item.id} 
-                      className="card"
-                      style={{
-                        padding: "16px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "16px"
-                      }}
-                    >
-                      <span className={`sport-chip ${item.id}`}>{item.sport}</span>
-                      
-                      <div style={{ flex: 1 }}>
-                        <h4 style={{ fontSize: "14px", fontWeight: 700 }}>{item.name}</h4>
-                        <div style={{ display: "flex", gap: "14px", fontSize: "11px", color: "var(--color-text-dim)", marginTop: "4px" }}>
-                          <span>Gender Rule: <strong>{item.gender_rule}</strong></span>
-                          <span>Low-stock thr: <strong>{item.low_stock_threshold}</strong></span>
-                          <span>Max issue: <strong>{item.max_issue_cap}</strong></span>
-                        </div>
+            {equipMessage.text && (
+              <div
+                role="status"
+                className={`badge ${equipMessage.type === "success" ? "badge-ok" : "badge-out"}`}
+                style={{ width: "100%", padding: "var(--space-sm)" }}
+              >
+                {equipMessage.type === "success" ? (
+                  <CheckCircle2 size={14} aria-hidden="true" />
+                ) : (
+                  <XCircle size={14} aria-hidden="true" />
+                )}
+                {equipMessage.text}
+              </div>
+            )}
+
+            <div className="mgr-split mgr-split-wide">
+              <div style={{ display: "grid", gap: "var(--space-sm)" }}>
+                {equipmentList.map((item) => (
+                  <div
+                    key={item.id}
+                    className="card mgr-equip-row"
+                  >
+                    <span className={`sport-chip ${sportClass(item.sport)}`} style={{ justifySelf: "start" }}>
+                      <span className={`sport-dot ${sportClass(item.sport)}`} />
+                      {item.sport}
+                    </span>
+
+                    <div style={{ minWidth: 0 }}>
+                      <h3 style={{ fontSize: "var(--text-sm)", fontWeight: 700 }}>{item.name}</h3>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "var(--space-md)",
+                          fontSize: "var(--text-2xs)",
+                          color: "var(--color-text-muted)",
+                          marginTop: "var(--space-xs)",
+                          flexWrap: "wrap"
+                        }}
+                      >
+                        <span>Gender rule: <strong>{item.gender_rule}</strong></span>
+                        <span>Low-stock thr: <strong>{item.low_stock_threshold}</strong></span>
+                        <span>Max issue: <strong>{item.max_issue_cap}</strong></span>
                       </div>
+                    </div>
 
-                      <button 
-                        className="btn btn-secondary touch-target"
-                        onClick={() => setEditingItem({
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() =>
+                        setEditingItem({
                           id: item.id,
                           name: item.name,
                           gender_rule: item.gender_rule,
                           low_stock_threshold: item.low_stock_threshold,
                           max_issue_cap: item.max_issue_cap
-                        })}
-                        style={{ padding: "0 10px", display: "flex", alignItems: "center", gap: "6px" }}
-                      >
-                        <Edit2 size={12} />
-                        Edit Rules
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                        })
+                      }
+                    >
+                      <Edit2 size={12} aria-hidden="true" />
+                      Edit rules
+                    </button>
+                  </div>
+                ))}
+              </div>
 
-                {/* Edit Form Drawer */}
-                {editingItem ? (
-                  <form onSubmit={handleRuleSave} className="card animate-fade-in" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "16px", border: "2px solid var(--color-brand-charcoal)" }}>
-                    <h3 style={{ fontSize: "15px", fontWeight: 800, borderBottom: "1.5px solid var(--color-brand-charcoal)", paddingBottom: "6px" }}>
-                      Edit Rules: {editingItem.name}
-                    </h3>
-                    
+              {editingItem ? (
+                <form
+                  onSubmit={handleRuleSave}
+                  className="card animate-fade-in"
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "var(--space-lg)",
+                    border: "2px solid var(--color-brand-charcoal)"
+                  }}
+                >
+                  <h3
+                    style={{
+                      fontSize: "var(--text-base)",
+                      fontWeight: 800,
+                      borderBottom: "1px solid var(--color-brand-charcoal)",
+                      paddingBottom: "var(--space-sm)"
+                    }}
+                  >
+                    Edit rules: {editingItem.name}
+                  </h3>
+
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="rule-gender">Gender restriction rule</label>
+                    <select
+                      id="rule-gender"
+                      className="form-input"
+                      value={editingItem.gender_rule}
+                      onChange={(e) => setEditingItem((prev) => ({ ...prev, gender_rule: e.target.value }))}
+                    >
+                      <option value="ALL">Allow all students</option>
+                      <option value="MALE">Boys only</option>
+                      <option value="FEMALE">Girls only</option>
+                    </select>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-md)" }}>
                     <div className="form-group">
-                      <label className="form-label">Gender Restriction Rule</label>
-                      <select 
+                      <label className="form-label" htmlFor="rule-threshold">Low-stock alert trigger</label>
+                      <input
+                        id="rule-threshold"
+                        type="number"
                         className="form-input"
-                        value={editingItem.gender_rule}
-                        onChange={(e) => setEditingItem(prev => ({ ...prev, gender_rule: e.target.value }))}
+                        value={editingItem.low_stock_threshold}
+                        onChange={(e) =>
+                          setEditingItem((prev) => ({ ...prev, low_stock_threshold: parseInt(e.target.value, 10) }))
+                        }
+                        min="1"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="rule-cap">Max allowed checkout limit</label>
+                      <input
+                        id="rule-cap"
+                        type="number"
+                        className="form-input"
+                        value={editingItem.max_issue_cap}
+                        onChange={(e) =>
+                          setEditingItem((prev) => ({ ...prev, max_issue_cap: parseInt(e.target.value, 10) }))
+                        }
+                        min="1"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: "var(--space-sm)" }}>
+                    <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Save rules</button>
+                    <button type="button" onClick={() => setEditingItem(null)} className="btn btn-secondary" style={{ flex: 1 }}>
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div
+                  className="card"
+                  style={{ borderStyle: "dashed", textAlign: "center", color: "var(--color-text-muted)", padding: "var(--space-xxl)" }}
+                >
+                  Select an item to modify its rule parameters.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------ */}
+        {/* FLAGGED                                                       */}
+        {/* ------------------------------------------------------------ */}
+        {activeTab === "flagged" && (
+          <div
+            id="panel-flagged"
+            role="tabpanel"
+            aria-labelledby="tab-flagged"
+            className="animate-fade-in mgr-split"
+          >
+            <section className="mgr-panel" aria-label="Active blocked warnings">
+              <h2 className="form-label">Active blocked warnings</h2>
+
+              {flaggedCards.length === 0 ? (
+                <div className="card" style={{ borderStyle: "dashed", textAlign: "center", color: "var(--color-text-muted)" }}>
+                  No active flags.
+                </div>
+              ) : (
+                flaggedCards.map((flag) => (
+                  <div
+                    key={flag.id}
+                    className="card"
+                    style={{
+                      borderLeft: "4px solid var(--color-danger)",
+                      backgroundColor: "var(--color-danger-bg)",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "var(--space-sm)"
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-sm)" }}>
+                      <span className="badge badge-out">
+                        <XCircle size={12} aria-hidden="true" />
+                        {flag.type}
+                      </span>
+                      <span className="font-mono text-muted" style={{ fontSize: "var(--text-2xs)" }}>Roll: {flag.roll}</span>
+                    </div>
+                    <p style={{ fontSize: "var(--text-xs)", color: "var(--color-danger)", lineHeight: 1.4 }}>{flag.reason}</p>
+
+                    <div style={{ display: "flex", gap: "var(--space-sm)" }}>
+                      <button
+                        /* Previously cleared the whole list rather than this flag. */
+                        onClick={() => setFlaggedCards((prev) => prev.filter((f) => f.id !== flag.id))}
+                        className="btn btn-secondary"
                       >
-                        <option value="ALL">Allow All Students</option>
-                        <option value="MALE">Boys Only</option>
-                        <option value="FEMALE">Girls Only</option>
-                      </select>
-                    </div>
-
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                      <div className="form-group">
-                        <label className="form-label">Low-Stock Alert Trigger</label>
-                        <input 
-                          type="number" 
-                          className="form-input"
-                          value={editingItem.low_stock_threshold}
-                          onChange={(e) => setEditingItem(prev => ({ ...prev, low_stock_threshold: parseInt(e.target.value) }))}
-                          min="1"
-                          required
-                        />
-                      </div>
-
-                      <div className="form-group">
-                        <label className="form-label">Max Allowed Checkout Limit</label>
-                        <input 
-                          type="number" 
-                          className="form-input"
-                          value={editingItem.max_issue_cap}
-                          onChange={(e) => setEditingItem(prev => ({ ...prev, max_issue_cap: parseInt(e.target.value) }))}
-                          min="1"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-                      <button type="submit" className="btn btn-primary touch-target" style={{ flex: 1, justifyContent: "center" }}>
-                        Save rules
+                        Dismiss flag
                       </button>
-                      <button 
-                        type="button" 
-                        onClick={() => setEditingItem(null)} 
-                        className="btn btn-secondary touch-target"
-                        style={{ flex: 1, justifyContent: "center" }}
+                      <button
+                        onClick={() => {
+                          setOldCardRoll(flag.roll);
+                          setNewCardRoll("");
+                        }}
+                        className="btn btn-danger"
                       >
-                        Cancel
+                        Trigger overrides
                       </button>
                     </div>
-                  </form>
-                ) : (
-                  <div className="card" style={{ padding: "30px", borderStyle: "dashed", textAlign: "center", color: "var(--color-text-dim)" }}>
-                    Select an item from the list to modify its data-driven rule parameters.
+                  </div>
+                ))
+              )}
+
+              <div className="card" style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+                <h3 style={{ fontSize: "var(--text-sm)", fontWeight: 700 }}>Unmatched return override</h3>
+                <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-muted)", lineHeight: 1.4 }}>
+                  If a student returns a lost or damaged item, or the transaction log cannot resolve their checkout
+                  automatically, a manager can declare a return record override.
+                </p>
+                <button className="btn btn-secondary" disabled style={{ width: "fit-content" }}>
+                  Process unresolved return
+                </button>
+                <span className="text-muted" style={{ fontSize: "var(--text-2xs)" }}>
+                  Not yet available — tracked as FR-13 in the frontend gap backlog.
+                </span>
+              </div>
+            </section>
+
+            <section className="mgr-panel" aria-label="Relink student ID">
+              <h2 className="form-label">Relink student ID (card replacement)</h2>
+
+              <form onSubmit={handleRelinkSubmit} className="card" style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
+                <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-muted)", lineHeight: 1.4 }}>
+                  Update a student's roll-number assignment — used when the college reissues a student under a changed
+                  roll number.
+                </p>
+
+                {adminMessage.text && (
+                  <div
+                    role="status"
+                    className={`badge ${adminMessage.type === "success" ? "badge-ok" : "badge-out"}`}
+                    style={{ width: "100%", padding: "var(--space-sm)" }}
+                  >
+                    {adminMessage.type === "success" ? (
+                      <CheckCircle2 size={14} aria-hidden="true" />
+                    ) : (
+                      <XCircle size={14} aria-hidden="true" />
+                    )}
+                    {adminMessage.text}
                   </div>
                 )}
 
-              </div>
-            </div>
-          )}
-
-          {/* TAB 4: FLAGGED VIEW */}
-          {activeTab === "flagged" && (
-            <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-              
-              <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "24px", alignItems: "start" }}>
-                
-                {/* Active warnings and card overrides */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                  <h3 className="form-label">Active Blocked Warnings</h3>
-                  
-                  {flaggedCards.map(flag => (
-                    <div 
-                      key={flag.id} 
-                      className="card"
-                      style={{
-                        padding: "16px",
-                        borderLeft: "4px solid var(--color-danger)",
-                        backgroundColor: "var(--color-danger-bg)",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "8px"
-                      }}
-                    >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span className="badge badge-out">{flag.type}</span>
-                        <span className="font-mono text-dim" style={{ fontSize: "11px" }}>Roll: {flag.roll}</span>
-                      </div>
-                      <p style={{ fontSize: "12.5px", color: "var(--color-danger)", lineHeight: 1.3 }}>
-                        {flag.reason}
-                      </p>
-                      
-                      <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-                        <button 
-                          onClick={() => setFlaggedCards([])}
-                          className="btn btn-secondary touch-target"
-                          style={{ height: "30px", fontSize: "11.5px", backgroundColor: "white" }}
-                        >
-                          Dismiss Flag
-                        </button>
-                        <button 
-                          onClick={() => {
-                            setOldCardRoll(flag.roll);
-                            setNewCardRoll(flag.roll + "0"); // mock suggestion
-                          }}
-                          className="btn btn-danger touch-target"
-                          style={{ height: "30px", fontSize: "11.5px" }}
-                        >
-                          Trigger Overrides
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Dummy unmatched returns logic */}
-                  <div className="card" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                    <h4 style={{ fontSize: "13.5px", fontWeight: 700 }}>Unmatched Return Override</h4>
-                    <p style={{ fontSize: "12px", color: "var(--color-text-muted)", lineHeight: 1.3 }}>
-                      If a student attempts to return lost or damaged items, or if transaction logs cannot resolve their checkout automatically, managers can manually declare a return record override.
-                    </p>
-                    <button 
-                      className="btn btn-secondary touch-target"
-                      onClick={() => alert("Override tool active: Search for student's unreturned transactions...")}
-                      style={{ width: "fit-content" }}
-                    >
-                      Process Unresolved Return
-                    </button>
-                  </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="relink-old">Current / old card roll</label>
+                  <input
+                    id="relink-old"
+                    type="text"
+                    className="form-input"
+                    placeholder="Enter active roll number"
+                    value={oldCardRoll}
+                    onChange={(e) => setOldCardRoll(e.target.value)}
+                    required
+                  />
                 </div>
 
-                {/* Card Relinker Form */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                  <h3 className="form-label">Relink Student ID (Card Replacement)</h3>
-                  
-                  <form onSubmit={handleRelinkSubmit} className="card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                    <p style={{ fontSize: "12px", color: "var(--color-text-muted)", lineHeight: 1.3 }}>
-                      Update student registry roll-number assignments (e.g., in case of student card replacements).
-                    </p>
-
-                    {adminMessage.text && (
-                      <div className={`badge ${adminMessage.type === 'success' ? 'badge-ok' : 'badge-out'}`} style={{ width: "100%", padding: "8px", justifyContent: "center" }}>
-                        {adminMessage.text}
-                      </div>
-                    )}
-
-                    <div className="form-group">
-                      <label className="form-label">Current / Old Card ID Roll</label>
-                      <input 
-                        type="text"
-                        className="form-input"
-                        placeholder="Enter active roll number"
-                        value={oldCardRoll}
-                        onChange={(e) => setOldCardRoll(e.target.value)}
-                        required
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label className="form-label">New Replacement Card ID Roll</label>
-                      <input 
-                        type="text"
-                        className="form-input"
-                        placeholder="Enter new roll number assignment"
-                        value={newCardRoll}
-                        onChange={(e) => setNewCardRoll(e.target.value)}
-                        required
-                      />
-                    </div>
-
-                    <button type="submit" className="btn btn-primary touch-target" style={{ marginTop: "6px", justifyContent: "center" }}>
-                      Perform ID Relink
-                    </button>
-                  </form>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="relink-new">New replacement card roll</label>
+                  <input
+                    id="relink-new"
+                    type="text"
+                    className="form-input"
+                    placeholder="Enter new roll number"
+                    value={newCardRoll}
+                    onChange={(e) => setNewCardRoll(e.target.value)}
+                    required
+                  />
                 </div>
 
-              </div>
-
-            </div>
-          )}
-
-        </div>
-
-      </div>
+                <button type="submit" className="btn btn-primary">Perform ID relink</button>
+              </form>
+            </section>
+          </div>
+        )}
+      </main>
     </div>
   );
 }

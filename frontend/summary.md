@@ -19,6 +19,8 @@ This document tracks all frontend tasks, timelines, and progress states.
 | **FE-09** | Live stream (SSE) client | Connect SSE hooks to render live activities scroll and slide-in low stock banners. | Day 6 | ✅ Done | 2026-07-19 |
 | **FE-10** | Reports & CSV export | Add rolling date tabs and front-end CSV data parser. | Day 7 | ✅ Done | 2026-07-19 |
 | **FE-11** | Administrative Actions | Code overrides interfaces: student card relinking and damaged gear reporting. | Day 7 | ✅ Done | 2026-07-19 |
+| **FE-12** | Responsive & A11y Remediation | Add the missing type/space scales, move layout out of inline styles into CSS, add breakpoints, and bring both roles to WCAG AA. | Day 7 | ✅ Done | 2026-07-20 |
+| **FE-13** | Full-Bleed App Shell | Retire the bordered device frame, add fluid gutters and an ultrawide content cap, and fix the mismatched per-role insets. | Day 7 | ✅ Done | 2026-07-20 |
 
 ---
 
@@ -43,3 +45,5 @@ This document tracks all frontend tasks, timelines, and progress states.
 2026-07-19 — [FE-09] Structured SSE stream subscription client mapping low-stock alerts.
 2026-07-19 — [FE-10] Coded precomputed report statistics and built local CSV exporter.
 2026-07-19 — [FE-11] Coded manager overrides: ID barcode relinking and flagged alerts.
+2026-07-20 — [FE-12] Added type/space scales and breakpoints, moved layout into CSS, and reached Lighthouse a11y 100 on both roles.
+2026-07-20 — [FE-13] Replaced the device frame with a full-bleed shell, fluid gutters and a 1600px content cap; fixed the mismatched Operator/Manager insets.
