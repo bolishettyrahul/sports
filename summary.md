@@ -7,7 +7,11 @@ This document coordinates development tasks and timelines between the **Frontend
 ## 📂 Repository Structure
 ```
 sports/
-├── API_CONTRACTS.md          # Shared Single Source of Truth (SSOT)
+├── docs/
+│   ├── API_CONTRACTS.md      # Shared Single Source of Truth (SSOT)
+│   ├── SPEC.md               # DB schema, tech stack, sync protocol
+│   ├── requirements.md       # Functional & non-functional requirements
+│   └── design.md             # Brand, palette, typography, densities
 ├── summary.md                # This master coordination file
 ├── backend/
 │   ├── summary.md            # Backend task log & timeline
@@ -54,4 +58,4 @@ sports/
 * [Frontend Summary](file:///c:/Users/bolis/OneDrive/Desktop/sports/frontend/summary.md)
 * [Backend Summary](file:///c:/Users/bolis/OneDrive/Desktop/sports/backend/summary.md)
 * [Integration Summary](file:///c:/Users/bolis/OneDrive/Desktop/sports/integration/summary.md)
-* [Shared API Contracts](file:///c:/Users/bolis/OneDrive/Desktop/sports/API_CONTRACTS.md)
+* [Shared API Contracts](file:///c:/Users/bolis/OneDrive/Desktop/sports/docs/API_CONTRACTS.md)

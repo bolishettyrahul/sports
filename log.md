@@ -33,9 +33,9 @@ The `_fronted1` branch isolates all React frontend source files, styles, configu
 The following changes were introduced between the initial setup and the final production-ready state:
 
 ### 1. Specification & Blueprint Files (Root Directory)
-- **[requirements.md](file:///c:/Users/bolis/OneDrive/Desktop/sports/requirements.md)**: Product requirements (eligibility rules, scanning/progressive enrollment guidelines, checkout limits, and offline queuing expectations).
-- **[design.md](file:///c:/Users/bolis/OneDrive/Desktop/sports/design.md)**: Brand styling guides, color palettes (Maroon `#6E1423`, Gold `#c26b1f`), font variables (`Archivo`, `JetBrains Mono`), and touch density target metrics (48px Operator targets vs 24px Manager tables).
-- **[SPEC.md](file:///c:/Users/bolis/OneDrive/Desktop/sports/SPEC.md)**: DB relational schemas, SSE stream events contract, client-side idempotency sync specifications, and REST API payloads matching `API_CONTRACTS.md`.
+- **[requirements.md](file:///c:/Users/bolis/OneDrive/Desktop/sports/docs/requirements.md)**: Product requirements (eligibility rules, scanning/progressive enrollment guidelines, checkout limits, and offline queuing expectations).
+- **[design.md](file:///c:/Users/bolis/OneDrive/Desktop/sports/docs/design.md)**: Brand styling guides, color palettes (Maroon `#6E1423`, Gold `#c26b1f`), font variables (`Archivo`, `JetBrains Mono`), and touch density target metrics (48px Operator targets vs 24px Manager tables).
+- **[SPEC.md](file:///c:/Users/bolis/OneDrive/Desktop/sports/docs/SPEC.md)**: DB relational schemas, SSE stream events contract, client-side idempotency sync specifications, and REST API payloads matching `API_CONTRACTS.md`.
 
 ### 2. Frontend Configuration Files (in `frontend/frontend/`)
 - **[.gitignore](file:///c:/Users/bolis/OneDrive/Desktop/sports/frontend/frontend/.gitignore)**: Standardized React + Vite excludes (caches, build dists, logs).

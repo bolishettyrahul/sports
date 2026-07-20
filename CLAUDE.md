@@ -38,10 +38,10 @@ Keep the note to one line — what shipped, not how. The timeline (target vs. ac
 
 Read these before implementing anything; they are authoritative and detailed:
 
-- **`API_CONTRACTS.md`** — SSOT for every request/response payload. Start here for any endpoint work.
-- **`SPEC.md`** — DB schema (4 tables), tech stack, endpoint list, offline sync protocol.
-- **`requirements.md`** — functional (FR-1…FR-12) and non-functional requirements.
-- **`design.md`** + **`Wireframe design screens/`** — UI/UX spec, wireframes, and the design system.
+- **`docs/API_CONTRACTS.md`** — SSOT for every request/response payload. Start here for any endpoint work.
+- **`docs/SPEC.md`** — DB schema (4 tables), tech stack, endpoint list, offline sync protocol.
+- **`docs/requirements.md`** — functional (FR-1…FR-12) and non-functional requirements.
+- **`docs/design.md`** + **`Wireframe design screens/`** — UI/UX spec, wireframes, and the design system.
 
 ## Architecture essentials (the non-obvious parts)
 
