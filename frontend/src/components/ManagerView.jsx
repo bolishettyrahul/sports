@@ -14,7 +14,8 @@ import {
   Edit2,
   Trash2,
   Search,
-  Check
+  Check,
+  LogOut
 } from "lucide-react";
 
 export default function ManagerView({ user, onLogout }) {
