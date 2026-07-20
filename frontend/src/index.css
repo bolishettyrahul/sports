@@ -1,0 +1,517 @@
+/* CBIT Sports - Design Tokens & Styles */
+
+:root {
+  /* Colors */
+  --color-brand-maroon: #6E1423;
+  --color-brand-charcoal: #1b1f24;
+  --color-brand-charcoal-dark: #121518;
+  --color-brand-gold: #c26b1f;
+  --color-brand-gold-dark: #9a5c10;
+  
+  --color-bg: #eceae6;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f9f8f6;
+  --color-divider: #cdd3da;
+  --color-divider-light: #e4e7ea;
+  --color-text-muted: #5b6470;
+  --color-text-dim: #8a929d;
+
+  /* Semantics */
+  --color-success: #177049;
+  --color-success-bg: #e4f1ea;
+  --color-success-border: #bcdfca;
+
+  --color-warning: #9a5c10;
+  --color-warning-bg: #fbefdc;
+  --color-warning-border: #ecd3a3;
+
+  --color-danger: #992019;
+  --color-danger-bg: #f8e3e1;
+  --color-danger-border: #eec1bd;
+
+  --color-info: #255a8f;
+  --color-info-bg: #e7eef7;
+  --color-info-border: #b9d0e8;
+
+  /* Fonts */
+  --font-sans: "Archivo", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Spacings */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 22px;
+  --space-xxl: 32px;
+
+  /* Shadows & Borders */
+  --border-radius-sm: 2px;
+  --border-radius-md: 4px;
+  --border-radius-lg: 8px;
+  --border-radius-full: 9999px;
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-premium: 0 18px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* Base resets */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-bg);
+  color: var(--color-brand-charcoal);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* Typography Helpers */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+.text-dim {
+  color: var(--color-text-dim);
+}
+
+/* Common Layout Containers */
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Device Frames (Modernist Box Frame) */
+.device-frame {
+  width: 100%;
+  max-width: 1200px;
+  margin: var(--space-xl) auto;
+  background-color: var(--color-surface);
+  border: 2px solid var(--color-brand-charcoal);
+  border-radius: var(--border-radius-sm);
+  box-shadow: var(--shadow-premium);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: var(--border-radius-sm);
+  transition: all 0.2s ease-in-out;
+  border: 1.5px solid var(--color-brand-charcoal);
+  background-color: var(--color-surface);
+  color: var(--color-brand-charcoal);
+}
+
+/* Role Specific Tap Targets */
+/* Operator Interface: Tablet high-touch, spacious targets */
+.operator-density .btn, 
+.operator-density .touch-target {
+  min-height: 48px;
+  padding: 0 var(--space-lg);
+  font-size: 14.5px;
+}
+
+.operator-density input, 
+.operator-density select {
+  min-height: 48px;
+  padding: 0 var(--space-md);
+  font-size: 14.5px;
+}
+
+/* Manager Interface: Laptop dense, compact targets */
+.manager-density .btn, 
+.manager-density .touch-target {
+  min-height: 32px;
+  padding: 0 var(--space-md);
+  font-size: 12.5px;
+}
+
+.manager-density input, 
+.manager-density select {
+  min-height: 32px;
+  padding: 0 var(--space-sm);
+  font-size: 12.5px;
+}
+
+/* Button Variants */
+.btn-primary {
+  background-color: var(--color-brand-maroon);
+  border-color: var(--color-brand-maroon);
+  color: var(--color-surface);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #550f1b;
+  border-color: #550f1b;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--color-divider-light);
+}
+
+.btn-danger {
+  background-color: var(--color-danger);
+  border-color: var(--color-danger);
+  color: var(--color-surface);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #7b1812;
+  border-color: #7b1812;
+}
+
+.btn-gold {
+  background-color: var(--color-brand-gold);
+  border-color: var(--color-brand-gold);
+  color: var(--color-surface);
+}
+
+.btn-gold:hover:not(:disabled) {
+  background-color: var(--color-brand-gold-dark);
+  border-color: var(--color-brand-gold-dark);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-full {
+  width: 100%;
+}
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid transparent;
+}
+
+.badge-ok {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+  border-color: var(--color-success-border);
+}
+
+.badge-low {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+  border-color: var(--color-warning-border);
+}
+
+.badge-out {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-color: var(--color-danger-border);
+}
+
+.badge-info {
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+  border-color: var(--color-info-border);
+}
+
+.badge-mono {
+  background-color: var(--color-brand-charcoal);
+  color: var(--color-surface);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+/* Sport Chips */
+.sport-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px var(--space-sm);
+  border: 1.5px solid var(--color-divider);
+  background-color: var(--color-surface);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.sport-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--border-radius-full);
+}
+
+/* Sport-specific colors */
+.sport-dot.basketball { background-color: #c26b1f; }
+.sport-chip.basketball { border-color: #c26b1f; color: #c26b1f; }
+
+.sport-dot.cricket { background-color: #2f7d3f; }
+.sport-chip.cricket { border-color: #2f7d3f; color: #2f7d3f; }
+
+.sport-dot.table_tennis { background-color: #5b4bcf; }
+.sport-chip.table_tennis { border-color: #5b4bcf; color: #5b4bcf; }
+
+.sport-dot.volleyball { background-color: #1f7a8c; }
+.sport-chip.volleyball { border-color: #1f7a8c; color: #1f7a8c; }
+
+.sport-dot.carrom { background-color: #b3841f; }
+.sport-chip.carrom { border-color: #b3841f; color: #b3841f; }
+
+.sport-dot.football { background-color: #2b6a4f; }
+.sport-chip.football { border-color: #2b6a4f; color: #2b6a4f; }
+
+.sport-chip.plus-more { border-color: var(--color-text-dim); color: var(--color-text-dim); }
+
+/* Form Fields */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.form-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.form-input {
+  border: 1.5px solid var(--color-brand-charcoal);
+  border-radius: var(--border-radius-sm);
+  background-color: var(--color-surface);
+  transition: all 0.2s;
+  outline: none;
+}
+
+.form-input:focus {
+  border-color: var(--color-brand-maroon);
+  box-shadow: 0 0 0 1px var(--color-brand-maroon);
+}
+
+/* Card layout elements */
+.card {
+  background-color: var(--color-surface);
+  border: 1.5px solid var(--color-divider);
+  border-radius: var(--border-radius-sm);
+  padding: var(--space-md);
+  transition: all 0.2s ease-in-out;
+}
+
+.card-interactive {
+  cursor: pointer;
+}
+
+.card-interactive:hover {
+  border-color: var(--color-brand-charcoal);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-selected {
+  border: 2px solid var(--color-brand-maroon) !important;
+  box-shadow: var(--shadow-md);
+}
+
+/* Segmented Options Control */
+.segmented-control {
+  display: flex;
+  width: 100%;
+  border: 1.5px solid var(--color-brand-charcoal);
+  border-radius: var(--border-radius-sm);
+  overflow: hidden;
+  background-color: var(--color-bg);
+}
+
+.segmented-option {
+  flex: 1;
+  text-align: center;
+  position: relative;
+}
+
+.segmented-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.segmented-label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--color-surface);
+  color: var(--color-brand-charcoal);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.segmented-option input[type="radio"]:checked + .segmented-label {
+  background-color: var(--color-brand-maroon);
+  color: var(--color-surface);
+}
+
+/* Tables */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  border: 1.5px solid var(--color-divider);
+  border-radius: var(--border-radius-sm);
+}
+
+.table-view {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  background-color: var(--color-surface);
+}
+
+.table-view th {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  text-align: left;
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 2px solid var(--color-brand-charcoal);
+  background-color: var(--color-divider-light);
+}
+
+.table-view td {
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--color-divider-light);
+  vertical-align: middle;
+}
+
+.table-view tr:last-child td {
+  border-bottom: none;
+}
+
+.table-view tr:hover td {
+  background-color: var(--color-surface-hover);
+}
+
+.table-view td.num-cell, 
+.table-view th.num-cell {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Camera scan animation viewport */
+.scan-viewport {
+  border: 2px solid var(--color-brand-charcoal);
+  background-color: var(--color-brand-charcoal-dark);
+  min-height: 160px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-dim);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.scan-reticle {
+  width: 60%;
+  height: 44%;
+  border: 2.2px dashed var(--color-brand-gold);
+  border-radius: var(--border-radius-md);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.scan-line {
+  position: absolute;
+  left: 20%;
+  right: 20%;
+  height: 2.5px;
+  background-color: var(--color-brand-gold);
+  box-shadow: 0 0 10px var(--color-brand-gold);
+  top: 50%;
+  animation: scan-move 2.2s infinite ease-in-out;
+  z-index: 1;
+}
+
+@keyframes scan-move {
+  0% { top: 28%; }
+  50% { top: 72%; }
+  100% { top: 28%; }
+}
+
+/* Utility Animations */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-divider);
+  border-radius: var(--border-radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-dim);
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
